@@ -1,0 +1,36 @@
+# ingress-nrimate.yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: nrimate-ingress
+  namespace: nrimate
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+    cert-manager.io/issuer: "letsencrypt-nrimate"
+spec:
+  tls:
+  - hosts:
+    - nrimate.com
+    - www.nrimate.com   # Include www subdomain here
+    secretName: nrimate-tls
+  rules:
+  - host: nrimate.com
+    http:
+      paths:
+      - path: "/"  # Update this path according to your application
+        pathType: Prefix
+        backend:
+          service:
+            name: nrimate-service
+            port:
+              number: 80
+  - host: www.nrimate.com   # Add a rule for www subdomain
+    http:
+      paths:
+      - path: "/"  # Update this path according to your application
+        pathType: Prefix
+        backend:
+          service:
+            name: nrimate-service
+            port:
+              number: 80

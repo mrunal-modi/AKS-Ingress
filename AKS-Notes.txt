@@ -75,7 +75,14 @@ Install Ingress Controller
 kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
 
 kubectl create namespace arewein
-kubectl apply -f arewein-app.yaml
+kubectl apply -f clusterissuer-lets-encrypt-arewein.yaml
+kubectl apply -f deployment-arewein.yaml
+kubectl apply -f service-arewein.yaml
+kubectl apply -f ingress-arewein.yaml
 
 kubectl create namespace nrimate
-kubectl apply -f nrimate-app.yaml
+kubectl apply -f clusterissuer-lets-encrypt-nrimate.yaml
+kubectl apply -f deployment-nrimate.yaml
+kubectl apply -f service-nrimate.yaml
+kubectl apply -f ingress-nrimate.yaml
+

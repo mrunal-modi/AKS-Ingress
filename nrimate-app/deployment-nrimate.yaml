@@ -1,0 +1,20 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nrimate-deployment
+  namespace: nrimate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nrimate
+  template:
+    metadata:
+      labels:
+        app: nrimate
+    spec:
+      containers:
+      - name: nrimate-container
+        image: mmodi/nrimate-app:latest
+        ports:
+        - containerPort: 80
