@@ -1,0 +1,81 @@
+export EMAIL_ADDRESS=mrunal.modi@gmail.com
+export AZURE_SUBSCRIPTION=6c7468cd-25f8-4a01-8c49-4736f5de41c6
+export AZURE_DEFAULTS_GROUP=aks-rg
+export CLUSTER=aks-cluster
+export DOMAIN_NAME=nrimate.com
+export USER_ASSIGNED_IDENTITY_NAME=cert-manager-aks
+export SERVICE_ACCOUNT_NAME=cert-manager
+export SERVICE_ACCOUNT_NAMESPACE=cert-manager
+export USER_ASSIGNED_IDENTITY_CLIENT_ID=$(az identity show --name "${USER_ASSIGNED_IDENTITY_NAME}" --query 'clientId' -o tsv)
+export SERVICE_ACCOUNT_ISSUER=$(az aks show --resource-group $AZURE_DEFAULTS_GROUP --name $CLUSTER --query "oidcIssuerProfile.issuerUrl" -o tsv)
+export AZURE_SUBSCRIPTION_ID=$(az account show --name $AZURE_SUBSCRIPTION --query 'id' -o tsv)
+
+
+Install the Azure workload identity features
+
+az extension add --name aks-preview
+az feature register --namespace "Microsoft.ContainerService" --name "EnableWorkloadIdentityPreview"
+az feature list -o table --query "[?contains(name, 'Microsoft.ContainerService/EnableWorkloadIdentityPreview')].{Name:name,State:properties.state}"
+
+# When ready, refresh the registration of the Microsoft.ContainerService resource provider by using the az provider register command:
+az provider register --namespace Microsoft.ContainerService
+
+ 
+
+Reconfigure the cluster to enable the workload identity federation features on the cluster
+
+az aks update \
+    --name ${CLUSTER} \
+    --enable-oidc-issuer \
+    --enable-workload-identity
+
+ 
+
+Label the cert-manager controller Pod and ServiceAccount for the attention of the Azure Workload Identity webhook.
+# This will result in the cert-manager controller Pod having an extra volume containing a Kubernetes ServiceAccount token which it will use to authenticate with Azure.
+# values.yaml
+
+podLabels:
+  azure.workload.identity/use: "true"
+serviceAccount:
+  labels:
+    azure.workload.identity/use: "true"
+
+ 
+helm upgrade cert-manager jetstack/cert-manager \
+    --namespace cert-manager \
+    --reuse-values \
+    --values values.yaml
+
+ 
+kubectl describe pod -n cert-manager -l app.kubernetes.io/component=controller
+
+ 
+
+Create an Azure Managed Identity
+az identity create --name "${USER_ASSIGNED_IDENTITY_NAME}"
+
+Grant it permission to modify the DNS zone records
+az role assignment create \
+    --role "DNS Zone Contributor" \
+    --assignee $USER_ASSIGNED_IDENTITY_CLIENT_ID \
+    --scope $(az network dns zone show --name $DOMAIN_NAME -o tsv --query id)
+ 
+
+Add a federated identity
+Now we will configure Azure to trust certain Kubernetes ServiceAccount tokens, in particular, the service account tokens from our specific Kubernetes cluster, and only tokens which are associated with the cert-manager ServiceAccount. cert-manager will authenticate to Azure using an short lived Kubernetes ServiceAccount token, and it will be able to impersonate the managed identity that you created in the previous step.
+
+az identity federated-credential create \
+  --name "cert-manager" \
+  --identity-name "${USER_ASSIGNED_IDENTITY_NAME}" \
+  --issuer "${SERVICE_ACCOUNT_ISSUER}" \
+  --subject "system:serviceaccount:${SERVICE_ACCOUNT_NAMESPACE}:${SERVICE_ACCOUNT_NAME}"
+
+Install Ingress Controller	
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+kubectl create namespace arewein
+kubectl apply -f arewein-app.yaml
+
+kubectl create namespace nrimate
+kubectl apply -f nrimate-app.yaml
