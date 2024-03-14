@@ -22,6 +22,7 @@ kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main
 
 # Get Public IPv4 of the Ingress Controller
 kubectl get svc -n ingress-nginx ingress-nginx-controller
+az network public-ip list --resource-group mc_aks-rg_aks-cluster_australiaeast --query "[].{Name:name, IP: ipAddress}"
 
 # Create DNS zone records using Public IPv4 from previous step
 az network dns zone create -g aks-rg -n nrimate.com
