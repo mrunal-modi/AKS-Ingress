@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nrimate
+    component: backend
+  name: backend-svc
+  namespace: nrimate
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+  selector:
+    app: nrimate
+    component: backend
+  type: ClusterIP

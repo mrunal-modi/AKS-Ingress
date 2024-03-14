@@ -1,0 +1,18 @@
+apiVersion: v1
+data:
+  DB_HOST: 'nrimate.7yxl4zt.mongodb.net/?retryWrites=true&w=majority&appName=nrimate'
+  DB_NAME: 'nrimate'
+  DB_PASS: 'nrimate'
+  DB_PORT: '27017'
+  DB_USER: 'nrimate'
+  IS_DB_SRV: 'true'
+  JWT_SECRET: MMM
+  REFRESH_SECRET: MMM
+kind: ConfigMap
+metadata:
+  creationTimestamp: null
+  labels:
+    app: nrimate
+    component: backend
+  name: backend-env
+  namespace: nrimate

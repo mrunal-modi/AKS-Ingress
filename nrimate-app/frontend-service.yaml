@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: nrimate
+    component: frontend
+  name: frontend-svc
+  namespace: nrimate
+spec:
+  ports:
+  - port: 80
+    protocol: null
+  selector:
+    app: nrimate
+    component: frontend
+  type: ClusterIP

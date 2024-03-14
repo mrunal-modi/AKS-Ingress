@@ -46,6 +46,13 @@ kubectl apply -f nrimate-app/deployment-nrimate.yaml
 kubectl apply -f nrimate-app/service-nrimate.yaml
 kubectl apply -f nrimate-app/ingress-nrimate.yaml
 
+kubectl apply -f nrimate-app/backend-env-configmap.yaml
+kubectl apply -f nrimate-app/backend-deployment.yaml
+kubectl apply -f nrimate-app/backend-service.yaml
+kubectl apply -f nrimate-app/frontend-deployment.yaml
+kubectl apply -f nrimate-app/frontend-service.yaml
+kubectl apply -f nrimate-app/ingress.yaml
+
 # Verify
 kubectl get issuers -n nrimate
 kubectl get issuers -n arewein

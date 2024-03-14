@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nrimate
+    component: frontend
+  name: frontend
+  namespace: nrimate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nrimate
+      component: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nrimate
+        component: frontend
+    spec:
+      containers:
+      - image: mmodi/nrimate-frontend:latest
+        imagePullPolicy: ''
+        name: frontend
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ''
+status: {}
