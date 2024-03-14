@@ -1,19 +1,19 @@
 apiVersion: cert-manager.io/v1
-kind: ClusterIssuer
+kind: Issuer
 metadata:
   name: letsencrypt-arewein
+  namespace: arewein
 spec:
   acme:
+    # The ACME server URL
     server: https://acme-v02.api.letsencrypt.org/directory
-    email: $EMAIL_ADDRESS
+    # Email address used for ACME registration
+    email: mrunal.modi@gmail.com
+    # Name of a secret used to store the ACME account private key
     privateKeySecretRef:
       name: letsencrypt-arewein
+    # Enable the HTTP-01 challenge provider
     solvers:
-    - dns01:
-        azureDNS:
-          resourceGroupName: $AZURE_DEFAULTS_GROUP
-          subscriptionID: $AZURE_SUBSCRIPTION_ID
-          hostedZoneName: arewein.com
-          environment: AzurePublicCloud
-          managedIdentity:
-            clientID: $USER_ASSIGNED_IDENTITY_CLIENT_ID
+      - http01:
+          ingress:
+            ingressClassName: nginx

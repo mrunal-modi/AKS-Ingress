@@ -1,0 +1,73 @@
+# Create an AKS Cluster
+az login
+az configure --defaults location=australiaeast
+az group create --name aks-rg --location australiaeast
+az aks create --resource-group aks-rg --name aks-cluster --node-count 1 --node-vm-size standard_b2s
+
+# Connect using CLI from AKS portal
+
+# Install cert-manager
+helm repo add jetstack https://charts.jetstack.io
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.14.4/cert-manager.crds.yaml
+helm install \
+  cert-manager jetstack/cert-manager \
+  --namespace cert-manager \
+  --create-namespace \
+  --version v1.14.4 \
+  --set prometheus.enabled=false
+  --set webhook.timeoutSeconds=4
+
+# Install Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+# Get Public IPv4 of the Ingress Controller
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+
+# Create DNS zone records using Public IPv4 from previous step
+az network dns zone create -g aks-rg -n nrimate.com
+az network dns zone create -g aks-rg -n arewein.com
+az network dns record-set a add-record --resource-group aks-rg --zone-name nrimate.com --record-set-name "@" --ipv4-address 20.53.167.218
+az network dns record-set a add-record --resource-group aks-rg --zone-name arewein.com --record-set-name "@" --ipv4-address 20.53.167.218
+az network dns record-set cname set-record --resource-group aks-rg --zone-name nrimate.com --record-set-name www --cname nrimate.com --ttl 3600
+az network dns record-set cname set-record --resource-group aks-rg --zone-name arewein.com --record-set-name www --cname arewein.com --ttl 3600
+
+# Deploy App arewein
+kubectl create namespace arewein
+kubectl apply -f arewein-app/clusterissuer-lets-encrypt-arewein.yaml
+kubectl apply -f arewein-app/deployment-arewein.yaml
+kubectl apply -f arewein-app/service-arewein.yaml
+kubectl apply -f arewein-app/ingress-arewein.yaml
+
+# Deploy App nrimate
+kubectl create namespace nrimate
+kubectl apply -f nrimate-app/clusterissuer-lets-encrypt-nrimate.yaml
+kubectl apply -f nrimate-app/deployment-nrimate.yaml
+kubectl apply -f nrimate-app/service-nrimate.yaml
+kubectl apply -f nrimate-app/ingress-nrimate.yaml
+
+# Verify
+kubectl get issuers -n nrimate
+kubectl get issuers -n arewein
+
+kubectl describe issuer letsencrypt-arewein -n arewein
+kubectl describe issuer letsencrypt-nrimate -n nrimate
+
+kubectl get certificates -n arewein
+kubectl get certificates -n nrimate
+
+kubectl describe certificate arewein-tls -n arewein
+kubectl describe certificate nrimate-tls -n nrimate
+
+kubectl get certificaterequests -n arewein -n arewein
+kubectl get certificaterequests -n nrimate -n nrimate
+
+kubectl describe certificaterequest arewein-tls -n arewein
+kubectl describe certificaterequest nrimate-tls -n nrimate
+
+kubectl get pods -n cert-manager -l app.kubernetes.io/component=controller
+kubectl logs -n cert-manager cert-manager-5664f76565-xjrqc
+
+curl -kivL -H 'Host: arewein.com' 'http://20.53.167.218'
+curl -kivL -H 'Host: nrimate.com' 'http://20.53.167.218'
+
+

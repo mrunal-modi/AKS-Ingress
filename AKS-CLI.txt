@@ -1,0 +1,128 @@
+export EMAIL_ADDRESS=mrunal.modi@gmail.com
+export AZURE_SUBSCRIPTION=6c7468cd-25f8-4a01-8c49-4736f5de41c6
+export AZURE_DEFAULTS_GROUP=aks-rg
+export CLUSTER=aks-cluster
+export USER_ASSIGNED_IDENTITY_NAME=cert-manager-aks
+export SERVICE_ACCOUNT_NAME=cert-manager
+export SERVICE_ACCOUNT_NAMESPACE=cert-manager
+export AZURE_SUBSCRIPTION_ID=$(az account show --name $AZURE_SUBSCRIPTION --query 'id' -o tsv)
+
+# Create an AKS Cluster
+az login
+az configure --defaults location=australiaeast
+az group create --name aks-rg --location australiaeast
+az aks create --resource-group aks-rg --name aks-cluster --node-count 1 --node-vm-size standard_b2s
+
+# Connect using CLI from AKS portal
+
+# Install the Azure workload identity features
+az extension add --name aks-preview
+az feature register --namespace "Microsoft.ContainerService" --name "EnableWorkloadIdentityPreview"
+az feature list -o table --query "[?contains(name, 'Microsoft.ContainerService/EnableWorkloadIdentityPreview')].{Name:name,State:properties.state}"
+
+# When ready, refresh the registration of the Microsoft.ContainerService resource provider by using the az provider register command:
+az provider register --namespace Microsoft.ContainerService
+
+# Reconfigure the cluster to enable the workload identity federation features on the cluster
+az aks update \
+    --name aks-cluster \
+    --enable-oidc-issuer \
+    --enable-workload-identity
+
+# Install cert-manager
+helm repo add jetstack https://charts.jetstack.io
+helm upgrade cert-manager jetstack/cert-manager \
+    --install \
+    --create-namespace \
+    --wait \
+    --namespace cert-manager \
+    --set installCRDs=true
+
+# Create an Azure Managed Identity
+az identity create --name cert-manager-aks
+export USER_ASSIGNED_IDENTITY_CLIENT_ID=$(az identity show --name cert-manager-aks --query 'clientId' -o tsv)
+
+# Grant it permission to modify the DNS zone records for DOMAIN_NAME - nrimate.com and arewein.com
+az network dns zone create -g aks-rg -n nrimate.com
+az role assignment create \
+    --role "DNS Zone Contributor" \
+    --assignee f6f86ccb-784f-4a9c-b41a-b711864fb287 \
+    --scope $(az network dns zone show --name nrimate.com -o tsv --query id)
+
+az network dns zone create -g aks-rg -n arewein.com
+az role assignment create \
+    --role "DNS Zone Contributor" \
+    --assignee f6f86ccb-784f-4a9c-b41a-b711864fb287 \
+    --scope $(az network dns zone show --name arewein.com -o tsv --query id)
+ 
+# Add a federated identity
+export SERVICE_ACCOUNT_ISSUER=$(az aks show --resource-group aks-rg --name aks-cluster --query "oidcIssuerProfile.issuerUrl" -otsv)
+az identity federated-credential create \
+  --name "cert-manager" \
+  --identity-name cert-manager-aks \
+  --issuer "${SERVICE_ACCOUNT_ISSUER}" \
+  --subject "system:serviceaccount:cert-manager:cert-manager"
+
+# Reconfigure cert-manager
+helm upgrade cert-manager jetstack/cert-manager \
+    --namespace cert-manager \
+    --reuse-values \
+    --values values.yaml
+
+# Install Ingress Controller
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/cloud/deploy.yaml
+
+# Deploy App arewein
+kubectl create namespace arewein
+kubectl apply -f arewein-app/clusterissuer-lets-encrypt-arewein.yaml
+kubectl apply -f arewein-app/deployment-arewein.yaml
+kubectl apply -f arewein-app/service-arewein.yaml
+kubectl apply -f arewein-app/ingress-arewein.yaml
+
+# Deploy App nrimate
+kubectl create namespace nrimate
+kubectl apply -f nrimate-app/clusterissuer-lets-encrypt-nrimate.yaml
+kubectl apply -f nrimate-app/deployment-nrimate.yaml
+kubectl apply -f nrimate-app/service-nrimate.yaml
+kubectl apply -f nrimate-app/ingress-nrimate.yaml
+
+# Get Public IPv4 of the Ingress Controller
+kubectl get svc -n ingress-nginx ingress-nginx-controller
+
+# Add DNS records <<update to IPv4 from previous command>>
+az network dns record-set a add-record --resource-group aks-rg --zone-name nrimate.com --record-set-name "@" --ipv4-address 4.147.232.191
+az network dns record-set a add-record --resource-group aks-rg --zone-name arewein.com --record-set-name "@" --ipv4-address 4.147.232.191
+
+az network dns record-set cname set-record --resource-group aks-rg --zone-name nrimate.com --record-set-name www --cname nrimate.com --ttl 3600
+az network dns record-set cname set-record --resource-group aks-rg --zone-name arewein.com --record-set-name www --cname arewein.com --ttl 3600
+
+
+# Verify
+kubectl describe clusterissuer letsencrypt-arewein
+kubectl describe clusterissuer letsencrypt-nrimate
+
+kubectl get certificaterequests -n arewein
+kubectl get certificaterequests -n nrimate
+
+kubectl describe certificaterequest arewein-tls-1 -n arewein
+kubectl describe certificaterequest nrimate-tls-1 -n nrimate
+
+kubectl describe order arewein-tls-1-2748813 -n arewein
+kubectl describe order nrimate-tls-1-3086536864 -n nrimate
+
+kubectl describe challenges -n arewein
+kubectl describe challenges -n nrimate
+
+kubectl get pods -n cert-manager -l app.kubernetes.io/component=controller
+kubectl get pods -n cert-manager -l app.kubernetes.io/component=controller -o jsonpath='{.items[0].metadata.name}'
+kubectl logs -n cert-manager cert-manager-7bdc8b5466-gp56t
+
+kubectl get certificates -n arewein
+kubectl get secrets -n arewein
+kubectl describe secret <tls-secret-name> -n arewein
+cmctl inspect secret <tls-secret-name> -n arewein
+
+curl -kivL -H 'Host: arewein.com' 'http://4.147.232.191'
+curl -kivL -H 'Host: nrimate.com' 'http://4.147.232.191'
+
+

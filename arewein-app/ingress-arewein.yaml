@@ -1,3 +1,4 @@
+# ingress-arewein.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,24 +11,24 @@ spec:
   tls:
   - hosts:
     - arewein.com
-    - www.arewein.com   # Include www subdomain here
+    - www.arewein.com
     secretName: arewein-tls
   rules:
   - host: arewein.com
     http:
       paths:
-      - pathType: Prefix
-        path: "/"
+      - path: "/"
+        pathType: Prefix
         backend:
           service:
             name: arewein-service
             port:
               number: 80
-  - host: www.arewein.com   # Add a rule for www subdomain
+  - host: www.arewein.com
     http:
       paths:
-      - pathType: Prefix
-        path: "/"
+      - path: "/"
+        pathType: Prefix
         backend:
           service:
             name: arewein-service

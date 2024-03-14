@@ -11,23 +11,23 @@ spec:
   tls:
   - hosts:
     - nrimate.com
-    - www.nrimate.com   # Include www subdomain here
+    - www.nrimate.com
     secretName: nrimate-tls
   rules:
   - host: nrimate.com
     http:
       paths:
-      - path: "/"  # Update this path according to your application
+      - path: "/"
         pathType: Prefix
         backend:
           service:
             name: nrimate-service
             port:
               number: 80
-  - host: www.nrimate.com   # Add a rule for www subdomain
+  - host: www.nrimate.com
     http:
       paths:
-      - path: "/"  # Update this path according to your application
+      - path: "/"
         pathType: Prefix
         backend:
           service:
