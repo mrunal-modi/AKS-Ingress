@@ -1,3 +1,8 @@
+# Check Docker CPU Arch on MacOS vs AKS
+docker buildx ls
+docker buildx build --platform linux/amd64,linux/arm64 -t your-image-name .
+kubectl get nodes -o wide
+
 # Create an AKS Cluster
 az login
 az configure --defaults location=eastus
