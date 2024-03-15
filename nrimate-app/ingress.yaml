@@ -38,24 +38,3 @@ spec:
               number: 80
         path: /
         pathType: Prefix
-  # rules:
-  # - host: nrimate.com
-  #   http:
-  #     paths:
-  #     - path: "/"
-  #       pathType: Prefix
-  #       backend:
-  #         service:
-  #           name: nrimate-service
-  #           port:
-  #             number: 80
-  # - host: www.nrimate.com
-  #   http:
-  #     paths:
-  #     - path: "/"
-  #       pathType: Prefix
-  #       backend:
-  #         service:
-  #           name: nrimate-service
-  #           port:
-  #             number: 80

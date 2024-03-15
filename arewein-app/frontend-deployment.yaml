@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: arewein
+    component: frontend
+  name: frontend
+  namespace: arewein
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: arewein
+      component: frontend
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: arewein
+        component: frontend
+    spec:
+      containers:
+      - image: mmodi/arewein-frontend:latest
+        imagePullPolicy: ''
+        name: frontend
+        resources: {}
+      restartPolicy: Always
+      serviceAccountName: ''
+status: {}

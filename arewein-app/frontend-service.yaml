@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: arewein
+    component: frontend
+  name: frontend-svc
+  namespace: arewein
+spec:
+  ports:
+  - port: 80
+    protocol: null
+  selector:
+    app: arewein
+    component: frontend
+  type: ClusterIP

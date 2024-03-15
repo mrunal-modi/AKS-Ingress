@@ -17,20 +17,24 @@ spec:
   - host: arewein.com
     http:
       paths:
-      - path: "/"
-        pathType: Prefix
-        backend:
+      - backend:
           service:
-            name: arewein-service
+            name: backend-svc
+            port:
+              number: 8080
+        path: /api-docs
+        pathType: Prefix
+      - backend:
+          service:
+            name: backend-svc
+            port:
+              number: 8080
+        path: /api
+        pathType: Prefix
+      - backend:
+          service:
+            name: frontend-svc
             port:
               number: 80
-  - host: www.arewein.com
-    http:
-      paths:
-      - path: "/"
+        path: /
         pathType: Prefix
-        backend:
-          service:
-            name: arewein-service
-            port:
-              number: 80
