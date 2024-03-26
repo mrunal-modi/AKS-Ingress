@@ -46,8 +46,8 @@ az network public-ip list --resource-group mc_aks-rg_aks-cluster_eastus --query 
 # Create DNS zone records using Public IPv4 from previous step
 az network dns zone create -g aks-rg -n nrimate.com
 az network dns zone create -g aks-rg -n arewein.com
-az network dns record-set a add-record --resource-group aks-rg --zone-name nrimate.com --record-set-name "@" --ipv4-address 172.171.165.124
-az network dns record-set a add-record --resource-group aks-rg --zone-name arewein.com --record-set-name "@" --ipv4-address 172.171.165.124
+az network dns record-set a add-record --resource-group aks-rg --zone-name nrimate.com --record-set-name "@" --ipv4-address 172.171.46.178
+az network dns record-set a add-record --resource-group aks-rg --zone-name arewein.com --record-set-name "@" --ipv4-address 172.171.46.178
 az network dns record-set cname set-record --resource-group aks-rg --zone-name nrimate.com --record-set-name www --cname nrimate.com --ttl 3600
 az network dns record-set cname set-record --resource-group aks-rg --zone-name arewein.com --record-set-name www --cname arewein.com --ttl 3600
 
