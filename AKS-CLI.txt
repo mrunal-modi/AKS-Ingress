@@ -32,7 +32,6 @@ az aks create \
     --node-count 1 \
     --node-vm-size standard_b2s \
     --node-osdisk-size 32 \
-    --enable-addons monitoring \
     --generate-ssh-keys
 
 # Connect using CLI from AKS portal
